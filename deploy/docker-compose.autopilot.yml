@@ -1,0 +1,30 @@
+services:
+  backend:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ../apps/backend:/app
+    command: sh -c "npm ci && npm run start:dev"
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        limits:
+          memory: 6g
+
+volumes:
+  ollama_data:
