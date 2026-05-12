@@ -1,31 +1,61 @@
 # Git-native ERP/PLM MVP
 
-MVP прототип ERP/PLM для hardware-разработки с GitLab как источником данных.
+MVP прототип ERP/PLM для hardware-разработки, где GitLab выступает источником инженерных данных, а ERP-слой управляет ревизиями, BOM, себестоимостью и задачами.
 
-## Что реализовано
-- Backend API (NestJS-style TypeScript) с доменными модулями: devices, revisions, bom, tasks, cost, gitlab webhook.
-- Prisma schema для PostgreSQL.
-- MVP Cost Engine (механика/электроника/firmware).
-- Документированная архитектура и roadmap для интеграции GitLab webhooks.
+## Микросервисная архитектура MVP
 
-## Структура
-- `apps/backend` — API и бизнес-логика.
-- `apps/backend/prisma/schema.prisma` — схема данных.
-- `docs/mvp-spec.md` — формализованное ТЗ и acceptance criteria.
-
-## Быстрый старт (backend)
-```bash
-cd apps/backend
-npm install
-npm run start:dev
+```text
+[GitLab]
+   | REST API + Webhooks
+   v
+[gitlab-integration-service] ---> [Redis queue]
+                                  |
+                                  v
+                            [data-processing-service]
+                                  |
+                                  v
+                              [core-backend-api] <----> [PostgreSQL]
+                                  |
+                                  v
+                              [frontend (Next.js)]
 ```
+
+### Сервисы
+- **gitlab-integration-service**
+  - Подключение GitLab project.
+  - Получение commits/branches/tags/MR через GitLab REST API.
+  - Обработка webhook событий: `push`, `merge request`, `tag push`.
+  - Публикация событий в очередь.
+
+- **data-processing-service**
+  - Парсинг BOM (CSV/JSON).
+  - Нормализация BOM item'ов.
+  - Извлечение метаданных инженерных файлов.
+  - Обработка CAD в MVP только как metadata extractor (без preview).
+
+- **core-backend-api (ERP service)**
+  - Бизнес-логика Device/Revision/Subsystem/Task.
+  - Cost Engine и cost breakdown.
+  - API для фронтенда.
+
+- **frontend (Next.js)**
+  - Dashboard устройств.
+  - Device page (ревизии + подсистемы + cost).
+  - Revision page (BOM + задачи + git activity).
+  - Task board (kanban).
+
+## Текущее состояние репозитория
+- `apps/backend` — MVP backend API (TypeScript + Express, подготовка под NestJS split).
+- `apps/backend/prisma/schema.prisma` — модель данных PostgreSQL.
+- `docs/mvp-spec.md` — подробное ТЗ и критерии успеха.
+- `apps/frontend/README.md` — MVP контур фронтенда.
 
 ## Основные endpoints (MVP)
 - `GET /devices`
 - `POST /devices`
 - `GET /devices/:id`
 - `GET /devices/:id/revisions`
-- `POST /revisions`
+- `POST /revisions` (manual override)
 - `GET /revisions/:id/bom`
 - `POST /revisions/:id/bom/import`
 - `GET /revisions/:id/tasks`
@@ -34,3 +64,15 @@ npm run start:dev
 - `GET /revisions/:id/cost`
 - `POST /integrations/gitlab/connect`
 - `POST /webhooks/gitlab`
+
+## Быстрый старт backend
+```bash
+cd apps/backend
+npm install
+npm run build
+npm run start:dev
+```
+
+
+## Production planning
+- Подробный production-план: `docs/production-plan.md`.
