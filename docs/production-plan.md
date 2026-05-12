@@ -184,7 +184,73 @@
 - Vault: raft snapshots + unseal key procedure.
 - Quarterly DR drills with documented RTO/RPO validation.
 
-## 9) Этапный план внедрения
+## 9) AI/LLM слой (Ollama на RTX 4050 Laptop 16GB VRAM)
+
+### 9.1 Цель AI слоя
+- Ускорить работу с инженерными артефактами (BOM, revision notes, task triage), а не только с кодом.
+- Добавить explainability для cost-решений (почему изменилась себестоимость между ревизиями).
+- Поддержать безопасный режим локального инференса в контуре компании.
+
+### 9.2 Рекомендуемые модели (production/dev)
+- **Primary**: `qwen2.5-coder:7b-instruct-q4_K_M` (баланс качества/скорости/VRAM для 16GB).
+- **Fallback-general**: `llama3.1:8b-instruct-q4_K_M` (универсальные задачи и документация).
+- **Fast-lite**: `qwen2.5:3b-instruct-q4_K_M` (быстрые UI-подсказки и классификация задач).
+
+### 9.3 Размещение и эксплуатация Ollama
+- Отдельный сервис `ollama-gateway` в namespace `erp`.
+- Доступ только из внутренних сервисов (`erp-api`, `bom-processing-worker`, `task-assistant-worker`).
+- Модельный роутинг по типу задачи:
+  - BOM normalization/extraction -> primary.
+  - Task summarization/classification -> fast-lite.
+  - Policy/cost explanation -> fallback-general.
+
+### 9.4 Набор AI use-cases (после MVP)
+- Нормализация BOM полей (manufacturer aliases, units, lifecycle tags).
+- Автогенерация task из GitLab MR/commit/webhook контекста.
+- Объяснение `cost delta` между revision `N` и `N+1` в human-readable виде.
+- Поиск дубликатов деталей (MPN/производитель/аналог).
+
+### 9.5 Guardrails и безопасность
+- PII/secret redaction перед отправкой в модель.
+- Prompt/version registry в БД для аудита.
+- Ограничение контекста: в prompt передаются только релевантные BOM/task/revision данные.
+- Feature-flag rollout: AI фичи включаются поэтапно по командам/проектам.
+
+## 10) Web search autopilot (инженерные данные и цены)
+
+### 10.1 Зачем нужен autopilot
+- Автопоиск цен, availability и lifecycle для BOM-позиций.
+- Автопоиск datasheet/PCN/EOL уведомлений по MPN.
+- Автопоиск альтернативных компонентов при риске поставок.
+
+### 10.2 Архитектура web-search слоя
+- Новый сервис `web-search-worker` (job-driven через Kafka).
+- Очереди:
+  - `price.lookup.requested`
+  - `datasheet.lookup.requested`
+  - `substitution.lookup.requested`
+- Результаты пишутся в `external_intel_snapshot` с указанием источника, времени и confidence score.
+
+### 10.3 Режимы работы
+- `manual`: запуск только из UI кнопкой (первая фаза).
+- `assisted-autopilot`: запуск по событиям (новый BOM import, release candidate).
+- `full-autopilot`: периодический refresh + policy-driven trigger rules.
+
+### 10.4 Policy и UX
+- На фронте редактируются:
+  - whitelist/blacklist доменов источников,
+  - приоритеты источников,
+  - TTL кэша результатов,
+  - порог confidence для автообновления цены.
+- Все auto-updates проходят через review queue при high-impact изменениях (например >7% cost delta).
+
+### 10.5 Надежность и контроль качества
+- Rate limiting и backoff для внешних источников.
+- Дедупликация запросов по `(mpn, manufacturer, currency, region)`.
+- История изменений с reason-codes (какой источник и почему выбран).
+- Alerting: резкий рост `price volatility`, stale search data, высокий fail-rate внешних запросов.
+
+## 11) Этапный план внедрения
 
 ### Phase 0 (1 неделя) — Foundation
 - Утверждение схем BOM и policy model.
@@ -211,7 +277,7 @@
 - Load tests, security checks, backup/restore drills.
 - Runbooks + on-call handoff.
 
-## 10) Что нужно от команды (input checklist)
+## 12) Что нужно от команды (input checklist)
 1. Домены и DNS для Traefik ingress.
 2. Требования по compliance (GDPR/ISO/internal).
 3. Предпочтительные price providers (контракты/API keys).
