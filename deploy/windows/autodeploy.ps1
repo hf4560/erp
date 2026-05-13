@@ -12,7 +12,11 @@ Write-Host "[3/5] Ожидание Ollama..."
 Start-Sleep -Seconds 5
 
 Write-Host "[4/5] Загрузка рекомендованной модели (qwen2.5-coder 7b q4)..."
-docker exec $(docker ps --filter name=ollama --format "{{.ID}}") ollama pull qwen2.5-coder:7b-instruct-q4_K_M
+$ollamaContainerId = docker ps --filter "name=ollama" --format "{{.ID}}" | Select-Object -First 1
+if (-not $ollamaContainerId) {
+  throw "Контейнер ollama не найден после запуска compose."
+}
+docker exec $ollamaContainerId ollama pull qwen2.5-coder:7b-instruct-q4_K_M
 
 Write-Host "[5/5] Health-check backend..."
 try {
