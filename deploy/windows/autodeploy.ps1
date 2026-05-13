@@ -1,12 +1,19 @@
 $ErrorActionPreference = "Stop"
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = Resolve-Path (Join-Path $scriptDir "..\..")
+$composeFile = Join-Path $repoRoot "deploy\docker-compose.autopilot.yml"
 
 Write-Host "[1/5] Проверка Docker Desktop..."
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
   throw "Docker не найден. Установите Docker Desktop для Windows 10."
 }
+if (-not (Test-Path $composeFile)) {
+  throw "Compose файл не найден: $composeFile"
+}
+docker info | Out-Null
 
 Write-Host "[2/5] Запуск инфраструктуры (backend + redis + ollama)..."
-docker compose -f deploy/docker-compose.autopilot.yml up -d
+docker compose -f $composeFile up -d
 
 Write-Host "[3/5] Ожидание Ollama..."
 Start-Sleep -Seconds 5
