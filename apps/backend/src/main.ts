@@ -10,6 +10,35 @@ type Device = { id: string; name: string; description?: string; createdAt: strin
 type Revision = { id: string; deviceId: string; version: string; status: RevisionStatus; createdAt: string };
 type BomItem = { id: string; revisionId: string; partName: string; manufacturer?: string; mpn?: string; quantity: number; unitCost: number; totalCost: number; category: SubsystemType };
 type Task = { id: string; revisionId: string; title: string; description?: string; status: TaskStatus; assigneeId?: string; type: TaskType };
+type AutopilotMode = 'manual' | 'assisted-autopilot' | 'full-autopilot';
+type SearchType = 'price' | 'datasheet' | 'substitution';
+type SearchJobStatus = 'queued' | 'running' | 'done' | 'failed';
+type SearchPolicy = {
+  mode: AutopilotMode;
+  whitelistDomains: string[];
+  blacklistDomains: string[];
+  cacheTtlMinutes: number;
+  confidenceThreshold: number;
+  highImpactDeltaPercent: number;
+};
+type SearchJob = {
+  id: string;
+  revisionId: string;
+  type: SearchType;
+  mpn?: string;
+  manufacturer?: string;
+  currency?: string;
+  region?: string;
+  status: SearchJobStatus;
+  requestedAt: string;
+  result?: {
+    source: string;
+    confidence: number;
+    price?: number;
+    currency?: string;
+    note: string;
+  };
+};
 
 const app = express();
 app.use(express.json());
@@ -18,6 +47,15 @@ const devices: Device[] = [];
 const revisions: Revision[] = [];
 const bomItems: BomItem[] = [];
 const tasks: Task[] = [];
+const searchJobs: SearchJob[] = [];
+const searchPolicy: SearchPolicy = {
+  mode: 'manual',
+  whitelistDomains: ['octopart.com', 'digikey.com', 'mouser.com'],
+  blacklistDomains: [],
+  cacheTtlMinutes: 120,
+  confidenceThreshold: 0.8,
+  highImpactDeltaPercent: 7
+};
 
 app.get('/devices', (_req, res) => res.json(devices));
 app.post('/devices', (req, res) => {
@@ -84,6 +122,52 @@ app.post('/webhooks/gitlab', (req, res) => {
     revisions.push(revision);
   }
   res.status(202).json({ received: true, event });
+});
+
+app.get('/autopilot/search/policy', (_req, res) => {
+  res.json(searchPolicy);
+});
+
+app.patch('/autopilot/search/policy', (req, res) => {
+  Object.assign(searchPolicy, req.body);
+  res.json(searchPolicy);
+});
+
+app.get('/autopilot/search/jobs', (_req, res) => {
+  res.json(searchJobs);
+});
+
+app.post('/autopilot/search/jobs', (req, res) => {
+  const job: SearchJob = {
+    id: uuid(),
+    revisionId: req.body.revisionId,
+    type: req.body.type,
+    mpn: req.body.mpn,
+    manufacturer: req.body.manufacturer,
+    currency: req.body.currency,
+    region: req.body.region,
+    status: 'queued',
+    requestedAt: new Date().toISOString()
+  };
+  searchJobs.push(job);
+  res.status(202).json(job);
+});
+
+app.post('/autopilot/search/jobs/:id/run', (req, res) => {
+  const job = searchJobs.find((entry) => entry.id === req.params.id);
+  if (!job) return res.status(404).json({ message: 'Search job not found' });
+
+  job.status = 'running';
+  const confidence = 0.86;
+  job.result = {
+    source: 'mock-source',
+    confidence,
+    price: req.body.mockPrice ?? 1.25,
+    currency: req.body.currency ?? 'USD',
+    note: confidence >= searchPolicy.confidenceThreshold ? 'Auto-candidate accepted for review queue' : 'Candidate requires manual review'
+  };
+  job.status = 'done';
+  return res.json(job);
 });
 
 app.listen(3000, () => {

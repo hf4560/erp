@@ -76,3 +76,8 @@ npm run start:dev
 
 ## Production planning
 - Подробный production-план: `docs/production-plan.md`.
+
+## Windows 10 autodeploy (autopilot + Ollama)
+- Инструкция: `docs/windows-autodeploy.md`.
+- Скрипт автодеплоя: `deploy/windows/autodeploy.ps1`.
+- Compose-профиль: `deploy/docker-compose.autopilot.yml`.
