@@ -1,0 +1,12 @@
+image:
+  repository: ghcr.io/example/erp-api
+  tag: latest
+
+env:
+  DATABASE_URL: ""
+  JWT_SECRET: ""
+  WRITE_API_KEY: ""
+
+service:
+  type: ClusterIP
+  port: 3000

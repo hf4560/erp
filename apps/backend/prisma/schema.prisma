@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Device {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  revisions   Revision[]
+}
+
+model Revision {
+  id         String      @id @default(uuid())
+  deviceId   String
+  version    String
+  status     RevisionStatus @default(draft)
+  createdAt  DateTime    @default(now())
+  device     Device      @relation(fields: [deviceId], references: [id])
+  subsystems Subsystem[]
+  bomItems   BomItem[]
+  tasks      Task[]
+}
+
+enum RevisionStatus {
+  draft
+  review
+  released
+}
+
+model Subsystem {
+  id         String      @id @default(uuid())
+  revisionId String
+  type       SubsystemType
+  repoUrl    String
+  branch     String
+  revision   Revision    @relation(fields: [revisionId], references: [id])
+}
+
+enum SubsystemType {
+  electronics
+  mechanical
+  firmware
+}
+
+model BomItem {
+  id           String   @id @default(uuid())
+  revisionId   String
+  partName     String
+  manufacturer String?
+  mpn          String?
+  quantity     Float
+  unitCost     Float
+  totalCost    Float
+  category     SubsystemType
+  revision     Revision @relation(fields: [revisionId], references: [id])
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  revisionId  String
+  title       String
+  description String?
+  status      TaskStatus @default(todo)
+  assigneeId  String?
+  type        TaskType
+  revision    Revision   @relation(fields: [revisionId], references: [id])
+}
+
+model SearchPolicy {
+  id                    String @id
+  mode                  String
+  whitelistDomains      Json
+  blacklistDomains      Json
+  cacheTtlMinutes       Int
+  confidenceThreshold   Float
+  highImpactDeltaPercent Float
+}
+
+model SearchJob {
+  id           String   @id @default(uuid())
+  revisionId   String
+  type         String
+  mpn          String?
+  manufacturer String?
+  currency     String?
+  region       String?
+  status       String
+  requestedAt  DateTime @default(now())
+  result       Json?
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actor      String
+  action     String
+  entityType String
+  entityId   String
+  payload    Json?
+  createdAt  DateTime @default(now())
+}
+
+model WebhookEvent {
+  id            String   @id @default(uuid())
+  source        String
+  eventKey      String   @unique
+  payload       Json
+  status        String
+  retryCount    Int      @default(0)
+  nextRetryAt   DateTime?
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+enum TaskStatus {
+  todo
+  in_progress
+  done
+}
+
+enum TaskType {
+  cost_reduction
+  bug
+  design
+  optimization
+}
