@@ -2,7 +2,7 @@ import request from 'supertest';
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
 
 process.env.NODE_ENV = 'test';
-process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/testdb';
+process.env.DATABASE_URL ??= 'postgresql://erp:erp@localhost:5432/erp_test';
 process.env.WRITE_API_KEY = 'test-write-key';
 
 const mod = await import('../src/main');
