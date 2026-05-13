@@ -1,0 +1,29 @@
+groups:
+  - name: erp-platform-alerts
+    rules:
+      - alert: HighWebhookFailureRate
+        expr: (sum(rate(gitlab_webhook_failed_total[5m])) / sum(rate(gitlab_webhook_received_total[5m]))) > 0.05
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High webhook failure rate"
+          description: "Webhook failure rate > 5% for 10m"
+
+      - alert: KafkaConsumerLagHigh
+        expr: sum(kafka_consumergroup_lag{group=~"gitlab-webhook-consumers|web-search-consumers"}) > 5000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka lag is high"
+          description: "Consumer lag exceeded 5000 messages"
+
+      - alert: ErrorBudgetBurn
+        expr: (sum(rate(http_requests_total{status=~"5.."}[30m])) / sum(rate(http_requests_total[30m]))) > 0.01
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Error budget burn detected"
+          description: "5xx ratio above 1% in last 30m"

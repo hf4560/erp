@@ -1,20 +1,28 @@
-# Frontend MVP (Next.js)
+# ERP Frontend (Next.js)
 
-## Страницы
-- Dashboard: список устройств + cost overview.
-- Device Page: ревизии, подсистемы, cost breakdown.
-- Revision Page: BOM, задачи, git activity, cost graph.
-- Task Board: kanban по revision.
+## What is implemented
+- Next.js app router frontend with production-style structure.
+- Pages:
+  - `/` dashboard
+  - `/devices`
+  - `/devices/:id`
+  - `/devices/:id/revisions/:revisionId`
+- API integration to backend endpoints:
+  - devices list
+  - revisions list
+  - BOM
+  - tasks
+  - cost breakdown
 
-## Интеграция с backend API
-Frontend работает как отдельный сервис и использует endpoints core-backend-api:
-- `/devices`
-- `/revisions`
-- `/tasks`
-- `/integrations/gitlab/connect`
+## Run
+```bash
+cd apps/frontend
+npm install
+NEXT_PUBLIC_API_URL=http://localhost:3000 npm run dev
+```
 
-## UI принципы
-- Минимализм.
-- Инженерная читаемость.
-- Табличный фокус + графы.
-- Акцент на cost и revision diff.
+Frontend runs on `http://localhost:3001`.
+
+## Notes
+- This is SSR-first and API-driven.
+- Styling intentionally minimal for engineering readability.

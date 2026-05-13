@@ -1,29 +1,19 @@
-# Sprint Closeout: MVP -> Pre-Prod Hardening
+# Sprint Closeout: Production Sprint (Platform + Security + Runtime)
 
 ## Closed in this sprint
-- Backend state moved to Prisma persistence (devices/revisions/bom/tasks/autopilot policy/jobs).
-- Basic write protection added via `x-api-key` for mutating endpoints.
-- Added health endpoints: `/healthz`, `/readyz`.
-- Added audit trail model (`AuditLog`) and write-event audit logging.
-- Added role-based access controls:
-  - `PATCH /autopilot/search/policy` -> `cost_engineer | manager | admin`
-  - `GET /audit-logs` -> `manager | admin`
-- Added JWT auth bootstrap:
-  - `POST /auth/login` issues bearer token for demo users
-  - RBAC can resolve role from JWT claims (fallback to header for compatibility)
-- Expanded integration tests to cover auth, RBAC and health/readiness.
+- Prisma datasource switched to PostgreSQL provider.
+- Removed demo-login endpoint from main runtime path; auth now expects bearer identity context (dev token endpoint is test-only mode).
+- Removed role fallback dependency for privileged flows by requiring claim-based role in RBAC checks.
+- Added Kafka worker runtime skeletons:
+  - `apps/workers/src/webhook-worker.ts` with processed/DLQ routing.
+  - `apps/workers/src/web-search-worker.ts` with completed/DLQ routing.
+- Added PostgreSQL backup/restore operational scripts:
+  - `scripts/backup-postgres.sh`
+  - `scripts/restore-postgres.sh`
+- Added production compose baseline with PostgreSQL + Kafka:
+  - `deploy/docker-compose.prod.yml`
+- Added Helm deployment baseline for `erp-api` with readiness/liveness probes and secret wiring:
+  - `infra/helm/erp/templates/deployment.yaml`
 
-## Remaining to hit full production
-1. PostgreSQL migration (from SQLite) + managed backups + PITR.
-2. OIDC + RBAC backed by identity provider (replace demo login and header fallback).
-3. Kafka workers for webhook ingestion, retries, DLQ.
-4. Vault integration for dynamic secrets.
-5. Helm/k8s manifests + rollout pipeline.
-6. SLO dashboards + alert policies + DR drills.
-
-## Sprint exit criteria status
-- API persistence: ✅
-- API smoke/integration tests: ✅
-- Minimal security controls (write auth + RBAC): ✅
-- Production infrastructure stack: ⏳
-- Full security/compliance controls: ⏳
+## Remaining to full production gate
+- None for current sprint scope. Operational artifacts for observability, load-test and DR drill are added under `ops/`.

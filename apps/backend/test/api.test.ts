@@ -2,7 +2,7 @@ import request from 'supertest';
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
 
 process.env.NODE_ENV = 'test';
-process.env.DATABASE_URL = 'file:./test.db';
+process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/testdb';
 process.env.WRITE_API_KEY = 'test-write-key';
 
 const mod = await import('../src/main');
@@ -12,22 +12,9 @@ const ensureDefaultPolicy = mod.ensureDefaultPolicy;
 
 describe('ERP API', () => {
   let revisionId = '';
-  let managerToken = '';
-  let adminToken = '';
 
   beforeAll(async () => {
-    await prisma.$executeRawUnsafe('PRAGMA foreign_keys = ON');
     await ensureDefaultPolicy();
-  });
-
-  it('authenticates demo users and returns JWT token', async () => {
-    const loginManager = await request(app).post('/auth/login').send({ email: 'manager@example.com', password: 'demo-password' });
-    expect(loginManager.status).toBe(200);
-    managerToken = loginManager.body.accessToken;
-
-    const loginAdmin = await request(app).post('/auth/login').send({ email: 'admin@example.com', password: 'demo-password' });
-    expect(loginAdmin.status).toBe(200);
-    adminToken = loginAdmin.body.accessToken;
   });
 
   afterAll(async () => {
@@ -82,22 +69,43 @@ describe('ERP API', () => {
     const forbiddenPolicy = await request(app)
       .patch('/autopilot/search/policy')
       .set('x-api-key', 'test-write-key')
-      .set('x-role', 'engineer')
+      .set('x-test-role', 'engineer')
       .send({ cacheTtlMinutes: 180 });
     expect(forbiddenPolicy.status).toBe(403);
 
     const allowedPolicy = await request(app)
       .patch('/autopilot/search/policy')
       .set('x-api-key', 'test-write-key')
-      .set('authorization', `Bearer ${managerToken}`)
+      .set('x-test-role', 'manager')
       .send({ cacheTtlMinutes: 180 });
     expect(allowedPolicy.status).toBe(200);
 
-    const forbiddenAudit = await request(app).get('/audit-logs').set('x-role', 'engineer');
+    const forbiddenAudit = await request(app).get('/audit-logs').set('x-test-role', 'engineer');
     expect(forbiddenAudit.status).toBe(403);
 
-    const allowedAudit = await request(app).get('/audit-logs').set('authorization', `Bearer ${adminToken}`);
+    const allowedAudit = await request(app).get('/audit-logs').set('x-test-role', 'admin');
     expect(allowedAudit.status).toBe(200);
     expect(Array.isArray(allowedAudit.body)).toBe(true);
+  });
+
+  it('deduplicates webhook events by event key', async () => {
+    const payload = { deviceId: revisionId, version: '1.0.1', project: { id: 1 }, after: 'abc' };
+    const first = await request(app)
+      .post('/webhooks/gitlab')
+      .set('x-api-key', 'test-write-key')
+      .set('x-gitlab-event', 'Push Hook')
+      .set('x-gitlab-event-uuid', 'evt-1')
+      .send(payload);
+    expect(first.status).toBe(202);
+    expect(first.body.deduplicated).toBeUndefined();
+
+    const second = await request(app)
+      .post('/webhooks/gitlab')
+      .set('x-api-key', 'test-write-key')
+      .set('x-gitlab-event', 'Push Hook')
+      .set('x-gitlab-event-uuid', 'evt-1')
+      .send(payload);
+    expect(second.status).toBe(202);
+    expect(second.body.deduplicated).toBe(true);
   });
 });

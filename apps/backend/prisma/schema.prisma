@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -104,6 +104,19 @@ model AuditLog {
   entityId   String
   payload    Json?
   createdAt  DateTime @default(now())
+}
+
+model WebhookEvent {
+  id            String   @id @default(uuid())
+  source        String
+  eventKey      String   @unique
+  payload       Json
+  status        String
+  retryCount    Int      @default(0)
+  nextRetryAt   DateTime?
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 enum TaskStatus {

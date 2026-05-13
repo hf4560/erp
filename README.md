@@ -1,8 +1,8 @@
-# Git-native ERP/PLM MVP
+# Git-native ERP/PLM
 
-MVP прототип ERP/PLM для hardware-разработки, где GitLab выступает источником инженерных данных, а ERP-слой управляет ревизиями, BOM, себестоимостью и задачами.
+Production-oriented ERP/PLM для hardware-разработки, где GitLab выступает источником инженерных данных, а ERP-слой управляет ревизиями, BOM, себестоимостью и задачами.
 
-## Микросервисная архитектура MVP
+## Микросервисная архитектура
 
 ```text
 [GitLab]
@@ -31,7 +31,7 @@ MVP прототип ERP/PLM для hardware-разработки, где GitLab
   - Парсинг BOM (CSV/JSON).
   - Нормализация BOM item'ов.
   - Извлечение метаданных инженерных файлов.
-  - Обработка CAD в MVP только как metadata extractor (без preview).
+  - Обработка CAD как metadata extractor (без preview в текущей версии).
 
 - **core-backend-api (ERP service)**
   - Бизнес-логика Device/Revision/Subsystem/Task.
@@ -45,12 +45,12 @@ MVP прототип ERP/PLM для hardware-разработки, где GitLab
   - Task board (kanban).
 
 ## Текущее состояние репозитория
-- `apps/backend` — MVP backend API (TypeScript + Express, подготовка под NestJS split).
+- `apps/backend` — backend API (TypeScript + Express, подготовка под NestJS split).
 - `apps/backend/prisma/schema.prisma` — модель данных PostgreSQL.
 - `docs/mvp-spec.md` — подробное ТЗ и критерии успеха.
-- `apps/frontend/README.md` — MVP контур фронтенда.
+- `apps/frontend` — рабочий Next.js frontend (dashboard/device/revision pages + backend API integration).
 
-## Основные endpoints (MVP)
+## Основные endpoints
 - `GET /devices`
 - `POST /devices`
 - `GET /devices/:id`
@@ -64,7 +64,7 @@ MVP прототип ERP/PLM для hardware-разработки, где GitLab
 - `GET /revisions/:id/cost`
 - `POST /integrations/gitlab/connect`
 - `POST /webhooks/gitlab`
-- `POST /auth/login`
+- `POST /auth/dev-token` (dev/test only)
 
 ## Быстрый старт backend
 ```bash
@@ -84,3 +84,15 @@ npm run start:dev
 - Compose-профиль: `deploy/docker-compose.autopilot.yml`.
 
 - Sprint closeout status: `docs/sprint-closeout.md`.
+
+## Vault runtime bootstrap
+- Start backend with dynamic DB credentials from Vault: `scripts/run-backend-with-vault.sh`.
+
+- Rotate Vault DB credentials to env file: `scripts/vault-rotate-db-creds.sh`.
+- CI/CD workflow scaffold: `.github/workflows/ci-cd.yml`.
+
+## Ops readiness artifacts
+- Prometheus alerts: `ops/observability/prometheus-alerts.yml`.
+- Grafana dashboard: `ops/observability/grafana-dashboard-erp.json`.
+- k6 load test: `ops/loadtest/k6-revisions.js`.
+- DR drill docs: `ops/dr/drill-checklist.md`, `ops/dr/drill-report-template.md`.
