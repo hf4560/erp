@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -71,6 +71,29 @@ model Task {
   assigneeId  String?
   type        TaskType
   revision    Revision   @relation(fields: [revisionId], references: [id])
+}
+
+model SearchPolicy {
+  id                    String @id
+  mode                  String
+  whitelistDomains      Json
+  blacklistDomains      Json
+  cacheTtlMinutes       Int
+  confidenceThreshold   Float
+  highImpactDeltaPercent Float
+}
+
+model SearchJob {
+  id           String   @id @default(uuid())
+  revisionId   String
+  type         String
+  mpn          String?
+  manufacturer String?
+  currency     String?
+  region       String?
+  status       String
+  requestedAt  DateTime @default(now())
+  result       Json?
 }
 
 enum TaskStatus {
