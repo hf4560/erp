@@ -96,6 +96,16 @@ model SearchJob {
   result       Json?
 }
 
+model AuditLog {
+  id         String   @id @default(uuid())
+  actor      String
+  action     String
+  entityType String
+  entityId   String
+  payload    Json?
+  createdAt  DateTime @default(now())
+}
+
 enum TaskStatus {
   todo
   in_progress

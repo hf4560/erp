@@ -64,6 +64,7 @@ MVP прототип ERP/PLM для hardware-разработки, где GitLab
 - `GET /revisions/:id/cost`
 - `POST /integrations/gitlab/connect`
 - `POST /webhooks/gitlab`
+- `POST /auth/login`
 
 ## Быстрый старт backend
 ```bash
@@ -81,3 +82,5 @@ npm run start:dev
 - Инструкция: `docs/windows-autodeploy.md`.
 - Скрипт автодеплоя: `deploy/windows/autodeploy.ps1`.
 - Compose-профиль: `deploy/docker-compose.autopilot.yml`.
+
+- Sprint closeout status: `docs/sprint-closeout.md`.
