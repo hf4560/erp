@@ -73,6 +73,52 @@ model Task {
   revision    Revision   @relation(fields: [revisionId], references: [id])
 }
 
+model SearchPolicy {
+  id                    String @id
+  mode                  String
+  whitelistDomains      Json
+  blacklistDomains      Json
+  cacheTtlMinutes       Int
+  confidenceThreshold   Float
+  highImpactDeltaPercent Float
+}
+
+model SearchJob {
+  id           String   @id @default(uuid())
+  revisionId   String
+  type         String
+  mpn          String?
+  manufacturer String?
+  currency     String?
+  region       String?
+  status       String
+  requestedAt  DateTime @default(now())
+  result       Json?
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actor      String
+  action     String
+  entityType String
+  entityId   String
+  payload    Json?
+  createdAt  DateTime @default(now())
+}
+
+model WebhookEvent {
+  id            String   @id @default(uuid())
+  source        String
+  eventKey      String   @unique
+  payload       Json
+  status        String
+  retryCount    Int      @default(0)
+  nextRetryAt   DateTime?
+  lastError     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 enum TaskStatus {
   todo
   in_progress

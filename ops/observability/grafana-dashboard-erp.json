@@ -1,0 +1,44 @@
+{
+  "title": "ERP SLO Dashboard",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "title": "Webhook Success Rate",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "1 - (sum(rate(gitlab_webhook_failed_total[5m])) / sum(rate(gitlab_webhook_received_total[5m])))"
+        }
+      ]
+    },
+    {
+      "title": "Kafka Consumer Lag",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(kafka_consumergroup_lag{group=~\"gitlab-webhook-consumers|web-search-consumers\"})"
+        }
+      ]
+    },
+    {
+      "title": "API p95 Latency",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m])))"
+        }
+      ]
+    },
+    {
+      "title": "5xx Rate",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m]))"
+        }
+      ]
+    }
+  ]
+}
