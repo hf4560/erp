@@ -1,14 +1,46 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=erp
+      - POSTGRES_USER=erp
+      - POSTGRES_PASSWORD=erp
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   backend:
     image: node:20-alpine
     working_dir: /app
     volumes:
       - ../apps/backend:/app
-    command: sh -c "npm ci && npm run start:dev"
+    command: sh -c "npm ci && npm run prisma:generate && npm run db:push && npm run start:dev"
     ports:
       - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
     environment:
       - NODE_ENV=development
+      - DATABASE_URL=postgresql://erp:erp@postgres:5432/erp?schema=public
+      - OIDC_ISSUER=http://host.docker.internal:8080/realms/erp
+      - OIDC_AUDIENCE=erp-backend
+      - OIDC_JWKS_URL=http://host.docker.internal:8080/realms/erp/protocol/openid-connect/certs
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ../apps/frontend:/app
+    command: sh -c "npm ci && npm run dev"
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend
+    environment:
+      - API_URL=http://backend:3000
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
 
   redis:
     image: redis:7-alpine
@@ -28,3 +60,4 @@ services:
 
 volumes:
   ollama_data:
+  postgres_data:
